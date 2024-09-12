@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+	<th:block
+		th:replace="~{/layout/basicLayout :: setContent(~{this::content3} )}">
+		<th:block th:fragment="content3">
+			<input type="text" id="_csrf" name="_csrf" th:value="${_csrf.token}" />
+			<input type="text" id="_csrf_header" name="_csrf_header"
+				th:value="${_csrf.headerName}" />
+
+			<h1>게시글 상세보기</h1>
+			<form th:action="@{/webboard/modify}" th:method="post">
+				<div class="form-group">
+					<label>bno</label> <input type="text" class="form-control"
+						name="bno" th:value="${board.bno}" readonly="readonly" />
+				</div>
+				<div class="form-group">
+					<label>제목</label> <input type="text" class="form-control"
+						name="title" th:value="${board.title}" />
+				</div>
+				<div class="form-group">
+					<label>내용</label>
+					<textarea name="content" class="form-control" rows="5" cols="20">[[${board.content}]]</textarea>
+				</div>
+				<div class="form-group">
+					<label>작성자ID</label> <input type="text" class="form-control"
+						name="mid" th:value="${board.mid}" readonly />
+				</div>
+				<div class="form-group">
+					<label>작성자Name</label> <input type="text" class="form-control"
+						name="mname" th:value="${board.mname}" readonly />
+				</div>
+				<div class="form-group">
+					<label>작성일</label> <input type="text" class="form-control"
+						th:value="${board.regdate}" readonly="readonly" />
+				</div>
+				<div class="form-group">
+					<label>수정일</label> <input type="text" class="form-control"
+						th:value="${board.updatedate}" readonly="readonly" />
+				</div>
+
+				<button type="submit" class="btn btn-primary btnModify">수정</button>
+				<button type="button" class="btn btn-primary btnDelete">삭제</button>
+			</form>
+
+			<!-- 댓글추가  -->
+			<div>
+				<div class="mt-4">
+					<h5>
+						<button type="button" class="btn btn-primary">
+							<span class="badge badge-secondary addReply">Add Reply</span>
+						</button>
+					</h5>
+					<h5>
+						<button type="button" class="btn btn-primary">
+							<span class="badge badge-secondary replyCount">Reply Count
+								: [[${board.replyCount}]]</span>
+						</button>
+					</h5>
+				</div>
+				<div class="list-group replyList"></div>
+			</div>
+
+
+			<!-- Modal : 댓글추가하거나 상세보기에 이용할 예정 -->
+			<div class="modal" tabindex="-1" role="dialog">
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">등록/수정</h5>
+							<button type="button" class="close" data-dismiss="modal"
+								aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body">
+							<div class="form-group">
+								<input class="form-control" type="text" name="replyText"
+									placeholder="댓글" /> <input class="form-control" type="text"
+									name="replyer" placeholder="작성자" /> <input type="text"
+									name="rno">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-warning repltModify">수정</button>
+							<button type="button" class="btn btn-primary replySave">입력</button>
+							<button type="button" class="btn btn-danger replyRemove">삭제</button>
+							<button type="button"
+								class="btn btn-outline-secondary replyClose"
+								data-dismiss="modal">Close</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<script th:inline="javascript">
+		  var boardBno = /*[[${board.bno}]]*/0;
+		  $(".btnDelete").click(f_delete);
+		  $(".addReply").click(f_insertModal);
+		  $("[data-dismiss]").click(f_closeModal);
+		  $(".replySave").click(f_insertReply);
+		  $(".replyCount").click(f_selectReply);
+		  $(".replyList").on("click", ".card-body", f_replyModify);
+		  $(".repltModify").on("click", f_replyModifyDB);
+		  $(".replyRemove").on("click", f_replyDelete);
+		  
+		  
+		  var token = $("input[name='_csrf']").val();
+		  var header = $("input[name='_csrf_header']").val();
+		  var beforeSend = function(xhr){ 
+			  	xhr.setRequestHeader(header, token);
+		  }
+		  
+		  function ajax_send(){
+			  if(token && header) {
+				  $(document).ajaxSend(function(event, xhr, options) {
+				 	 xhr.setRequestHeader(header, token);
+				  });
+			  }
+		  }
+
+		  
+		  
+		  function f_replyDelete(){
+			  var rno = $("input[name='rno']").val();
+			  $.ajax({
+				  beforeSend,
+				  url:"/replies/delete/"+rno,
+				  method:"delete",
+				  success:function(responseData){
+					  if(responseData==="success"){
+						  alert("댓글삭제됨");
+						  $(".modal").hide();
+						  f_selectReply();
+					  }
+				  }
+			  });
+		  }
+		  function f_replyModifyDB(){
+			  var rno = $("input[name='rno']").val();
+			  var reply = $('input[name="replyText"]').val();
+			  var replyer = $('input[name="replyer"]').val();
+			  var replyDTO = {rno, reply, replyer, boardBno};
+			  $.ajax({
+				  beforeSend,
+				  url:"/replies/modify",
+				  method:"put",
+				  data: JSON.stringify(replyDTO),
+				  contentType:"application/json",
+				  success:function(responseData){
+					  if(responseData==="success"){
+						  alert("댓글수정됨");
+						  $(".modal").hide();
+						  f_selectReply();
+					  }
+				  }
+			  });
+		  }
+		  
+		  function f_replyModify(){
+			  $("input[name='rno']").val($(this).data("rno"));
+			  $('input[name="replyText"]').val($(this).find(".card-title").html());
+			  $('input[name="replyer"]').val($(this).find(".card-subtitle").html());
+			  $(".modal-footer button").hide();
+			  $(".repltModify,.replyRemove, .replyClose").show();
+			  $(".modal").show();
+		  }
+		  
+		  function f_selectReply(){
+			  ajax_send();
+			  $.getJSON("/replies/list/"+boardBno, f_dataDisplay);
+		  }
+ 		  
+		  function f_formatDate(str){
+			  var date = new Date(str);
+			  return date.getFullYear()+"/"+(date.getMonth()+1)+"/"+date.getDate()+" "
+			        + date.getHours()+":"+date.getMinutes();
+		  }
+		  
+		  
+		  function f_dataDisplay(replyList){
+			  var output = '';
+			  $(".replyCount").html("Reply Count : " + replyList.length);
+			  $.each(replyList, function(index, reply){
+				  var dt = f_formatDate(reply.regdate);
+				  var dt2 = f_formatDate(reply.updatedate);
+				  output += `
+					  <div class='card card-body' data-rno='${reply.rno}' style="width: 18rem;"  >
+   				        <b>${reply.rno}</b>
+   				        <h5 class='card-title'>${reply.reply}</h5>
+   				        <h5 class='card-subtitle mb-2 text-muted'>${reply.replyer}</h5>
+   				        <p class='card-text mb-2 text-muted'>등록일: ${dt} </p>
+   				        <p class='card-text mb-2 text-muted'>수정일: ${dt2} </p>
+   				      </div>
+				  `;
+			  });
+			 
+			  $(".replyList").html(output);
+		  }
+		  
+		  
+		  function f_insertReply(){
+			  var reply = $('input[name="replyText"]').val();
+			  var replyer = $('input[name="replyer"]').val();
+			  var replyDTO = {reply, replyer, boardBno}; //{boardBno:boardBno} =>{boardBno}
+			  console.log(JSON.stringify(replyDTO));
+			  $.ajax({
+				  beforeSend,
+				  url:"/replies/register",
+				  method:"post",
+				  data: JSON.stringify(replyDTO),
+				  contentType:"application/json;charset=utf-8", //보내는 data
+				  success:function(responseData){
+					  alert(responseData + "번 댓글등록됨");
+					  f_closeModal(); //모달닫기 
+					  f_selectReply(); //댓글조회 
+				  }
+			  });
+			  
+		  }
+		  
+		  function f_closeModal(){
+			  $(".modal").hide();
+		  }
+		  
+		  function f_insertModal(){
+			  $(".modal").show();
+			  $(".modal-footer button").hide();
+			  $(".replySave, .replyClose").show();
+			  $('input[name="replyText"]').val("");
+			  $('input[name="replyer"]').val("");		  
+		  }
+		  
+		  
+		  function f_delete(event){
+			  event.preventDefault();
+			  var formObj = $("form");
+			  formObj.attr("action", "delete");
+			  formObj.attr("method", "post");
+			  formObj.submit();
+		  }
+		</script>
+		</th:block>
+	</th:block>
+</body>
+</html>

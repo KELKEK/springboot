@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<th:block th:replace="~{/layout/basicLayout :: setContent(~{this::content33} )}">
+<th:block th:fragment="content33">
+<h1>이것은 이름입니다.</h1>
+<!-- HTML태그가 문자로 출력된다. -->
+<h2 th:text="${menu}">이 글씨는 나오지 않음</h2>
+<h2 th:text="${'<h1>' + menu + '<h1>'}">메뉴이름-text</h2>
+<!-- HTML tag가 동작 -->
+<h2 th:utext="${'<h1>' + menu + '<h1>'}">메뉴이름-utext</h2>
+<h3 th:text="${member.mname}">BB</h3>
+<!-- 태그 쓰는 것이 불편할 땐 인라인방식 -->
+<h3>inline방식 : [[${member.mid}]]</h3>
+</th:block>
+</th:block>
+</body>
+</html>
